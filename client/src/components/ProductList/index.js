@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useQuery } from '@apollo/react-hooks';
+import { idbPromise } from '../../utils/helpers';
 
 import ProductItem from "../ProductItem";
 import { QUERY_PRODUCTS } from "../../utils/queries";
@@ -20,8 +21,23 @@ function ProductList() {
         type: UPDATE_PRODUCTS,
         products: data.products
       });
+
+      // save products to indexDB
+      data.products.forEach((product) => {
+        idbPromise('products', 'put', product);
+      });
+      //add else if to check if 'loading' is undefined in useQuery hook
+    } else if (!loading) {
+      // since were offline get product data from indexDB products store
+      idbPromise('products', 'get').then((products) => {
+        //use retrieved data to set global state for offline browsing
+        dispatch ({
+          type: UPDATE_PRODUCTS,
+          products: products
+        });
+      });
     }
-  }, [data, dispatch]);
+  }, [data, loading, dispatch]);
 
   function filterProducts() {
     if (!currentCategory) {
